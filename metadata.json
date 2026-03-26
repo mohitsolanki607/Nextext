@@ -1,0 +1,5 @@
+{
+  "name": "Nextext",
+  "description": "The ultimate AI-powered study platform with streaks, multiplayer battles for govt exams, and intelligent assistants.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}

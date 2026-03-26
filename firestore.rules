@@ -1,0 +1,271 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, displayName, email, photoURL, isPro, createdAt
+    //
+    // Collection: semesters
+    // Fields: uid, name, year, createdAt
+    //
+    // Collection: books
+    // Fields: uid, semesterId, title, author, status, link, notes, createdAt
+    //
+    // Collection: media
+    // Fields: uid, name, url, type, size, createdAt
+    //
+    // Collection: activities
+    // Fields: uid, action, details, timestamp
+    //
+    // Collection: weekly_exams
+    // Fields: subject, weekNumber, year, questions, status, createdAt
+    //
+    // Collection: battles
+    // Fields: subject, language, status, players, playerNames, scores, currentQuestion, questions, createdAt
+    //
+    // Collection: referrals
+    // Fields: referrerUid, referredUid, status, createdAt
+    //
+    // Collection: whiz_quizzes
+    // Fields: creatorUid, creatorName, topic, questions, createdAt
+    //
+    // Collection: doubt_posts
+    // Fields: authorUid, authorName, authorPhoto, imageUrl, solution, subject, exam, likes, saves, commentCount, createdAt
+    //
+    // Collection: doubt_comments
+    // Fields: postId, authorUid, authorName, authorPhoto, text, createdAt
+    //
+    // Collection: complaints
+    // Fields: uid, email, displayName, subject, message, status, createdAt
+    //
+    // Collection: app_config
+    // Fields: globalNotification, maintenanceMode, updatedAt
+    //
+    // Collection: snaps
+    // Fields: uid, email, mode, imageUrl, result, createdAt
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (request.auth.token.email == "msolanki80979@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isRecent(time) {
+      return time is timestamp &&
+             time > request.time - duration.value(5, 'm') &&
+             time < request.time + duration.value(5, 'm');
+    }
+
+    function isValidPendingPayment(data) {
+      let allowedFields = ['uid', 'email', 'utr', 'status', 'createdAt'];
+      return data.keys().hasAll(['uid', 'email', 'utr', 'status']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             data.status == 'pending' &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidUser(data) {
+      let allowedFields = ['uid', 'email', 'displayName', 'photoURL', 'isPro', 'streak', 'persona', 'lastActive', 'trialEndsAt', 'subscriptionEndsAt', 'createdAt', 'referralCode', 'referredBy', 'referralCount', 'successfulReferrals', 'role', 'nexCoins', 'level'];
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             data.email is string &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('isPro' in data) || data.isPro is bool) &&
+             (!('streak' in data) || data.streak is number) &&
+             (!('nexCoins' in data) || data.nexCoins is number) &&
+             (!('level' in data) || data.level is string) &&
+             (!('persona' in data) || data.persona in ['school', 'govt']) &&
+             (!('role' in data) || data.role in ['user', 'admin']) &&
+             (!('referralCode' in data) || data.referralCode is string) &&
+             (!('referredBy' in data) || data.referredBy is string) &&
+             (!('referralCount' in data) || data.referralCount is number) &&
+             (!('successfulReferrals' in data) || data.successfulReferrals is number) &&
+             (!('lastActive' in data) || data.lastActive is timestamp) &&
+             (!('trialEndsAt' in data) || data.trialEndsAt is timestamp) &&
+             (!('subscriptionEndsAt' in data) || data.subscriptionEndsAt is timestamp) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidReferral(data) {
+      let allowedFields = ['referrerUid', 'referredUid', 'status', 'createdAt'];
+      return data.keys().hasAll(['referrerUid', 'referredUid', 'status']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.referredUid == request.auth.uid &&
+             data.status in ['joined', 'pro'] &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidSemester(data) {
+      let allowedFields = ['uid', 'name', 'year', 'createdAt'];
+      return data.keys().hasAll(['uid', 'name', 'year']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.year is string && data.year.size() > 0 && data.year.size() < 20 &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidBook(data) {
+      let allowedFields = ['uid', 'semesterId', 'title', 'author', 'status', 'link', 'notes', 'createdAt'];
+      return data.keys().hasAll(['uid', 'semesterId', 'title', 'status']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             data.semesterId is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.status in ['to-read', 'reading', 'completed'] &&
+             (!('author' in data) || (data.author is string && data.author.size() < 100)) &&
+             (!('link' in data) || (data.link is string && data.link.size() < 500)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() < 5000)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidWhizQuiz(data) {
+      let allowedFields = ['creatorUid', 'creatorName', 'topic', 'questions', 'createdAt'];
+      return data.keys().hasAll(['creatorUid', 'topic', 'questions']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.creatorUid == request.auth.uid &&
+             data.topic is string && data.topic.size() > 0 && data.topic.size() < 200 &&
+             data.questions is list && data.questions.size() > 0 && data.questions.size() <= 10 &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidComplaint(data) {
+      let allowedFields = ['uid', 'email', 'displayName', 'subject', 'message', 'status', 'createdAt'];
+      return data.keys().hasAll(['uid', 'email', 'message', 'status']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid == request.auth.uid &&
+             data.status == 'pending' &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 5000 &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data)) || isAdmin();
+    }
+
+    match /semesters/{semesterId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidSemester(request.resource.data);
+      allow update: if isDocOwner() && isValidSemester(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /books/{bookId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidBook(request.resource.data);
+      allow update: if isDocOwner() && isValidBook(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /media/{mediaId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    match /activities/{activityId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /weekly_exams/{examId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin();
+    }
+
+    match /exam_submissions/{submissionId} {
+      allow read: if isAuthenticated(); // Allow leaderboard access
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /battles/{battleId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.players[0] == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        (request.auth.uid in resource.data.players) || 
+        (resource.data.status == 'waiting' && request.resource.data.players.size() == 2)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (resource.data.referrerUid == request.auth.uid || resource.data.referredUid == request.auth.uid);
+      allow create: if isAuthenticated() && isValidReferral(request.resource.data);
+      allow update: if isAuthenticated() && (
+        (resource.data.referredUid == request.auth.uid && request.resource.data.status == 'pro') ||
+        isAdmin()
+      );
+    }
+
+    match /whiz_quizzes/{quizId} {
+      allow read: if true; // Publicly readable for sharing
+      allow create: if isAuthenticated() && isValidWhizQuiz(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.creatorUid == request.auth.uid;
+    }
+
+    match /doubt_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        (resource.data.authorUid == request.auth.uid) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'saves', 'commentCount']))
+      );
+      allow delete: if isAuthenticated() && resource.data.authorUid == request.auth.uid;
+    }
+
+    match /doubt_posts/{postId}/comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.authorUid == request.auth.uid;
+    }
+
+    match /pending_payments/{paymentId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidPendingPayment(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /complaints/{complaintId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidComplaint(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /app_config/{configId} {
+      allow read: if true; // Publicly readable for students
+      allow write: if isAdmin();
+    }
+
+    match /snaps/{snapId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

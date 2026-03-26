@@ -1,0 +1,302 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile information and subscription status.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "isPro": { "type": "boolean" },
+        "persona": { "type": "string", "enum": ["school", "govt"] },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
+        "referralCount": { "type": "number" },
+        "successfulReferrals": { "type": "number" },
+        "streak": { "type": "number" },
+        "nexCoins": { "type": "number" },
+        "level": { "type": "string" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "trialEndsAt": { "type": "string", "format": "date-time" },
+        "subscriptionEndsAt": { "type": "string", "format": "date-time" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Semester": {
+      "title": "Semester",
+      "description": "A student's academic semester.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "year": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "year"]
+    },
+    "Book": {
+      "title": "Book",
+      "description": "A textbook or resource within a semester.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "semesterId": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "status": { "type": "string", "enum": ["to-read", "reading", "completed"] },
+        "link": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "semesterId", "title", "status"]
+    },
+    "Media": {
+      "title": "Media File",
+      "description": "Metadata for uploaded study materials.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "url"]
+    },
+    "Activity": {
+      "title": "User Activity",
+      "description": "Log of user actions for history and analytics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "action", "timestamp"]
+    },
+    "Battle": {
+      "title": "Multiplayer Battle",
+      "description": "Real-time study battle session.",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["waiting", "active", "finished"] },
+        "subject": { "type": "string" },
+        "players": { "type": "array", "items": { "type": "string" } },
+        "scores": { "type": "object" },
+        "questions": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status", "subject", "players", "createdAt"]
+    },
+    "WeeklyExam": {
+      "title": "Weekly Exam",
+      "description": "AI-conducted weekly exam for a specific subject.",
+      "type": "object",
+      "properties": {
+        "subject": { "type": "string" },
+        "weekNumber": { "type": "number" },
+        "year": { "type": "number" },
+        "questions": { "type": "array" },
+        "status": { "type": "string", "enum": ["active", "finished"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subject", "weekNumber", "year", "questions", "status"]
+    },
+    "ExamSubmission": {
+      "title": "Exam Submission",
+      "description": "User's submission for a weekly exam.",
+      "type": "object",
+      "properties": {
+        "examId": { "type": "string" },
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "score": { "type": "number" },
+        "answers": { "type": "array" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["examId", "uid", "score", "completedAt"]
+    },
+    "Referral": {
+      "title": "Referral Link",
+      "description": "Tracks a referral from one user to another.",
+      "type": "object",
+      "properties": {
+        "referrerUid": { "type": "string" },
+        "referredUid": { "type": "string" },
+        "status": { "type": "string", "enum": ["joined", "pro"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["referrerUid", "referredUid", "status", "createdAt"]
+    },
+    "WhizQuiz": {
+      "title": "Whiz Quiz",
+      "description": "A quiz created by AI for sharing via Whiz-Link.",
+      "type": "object",
+      "properties": {
+        "creatorUid": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "topic": { "type": "string" },
+        "questions": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorUid", "topic", "questions", "createdAt"]
+    },
+    "DoubtPost": {
+      "title": "Doubt Post",
+      "description": "A doubt posted by a student to the community feed.",
+      "type": "object",
+      "properties": {
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "solution": { "type": "string" },
+        "subject": { "type": "string" },
+        "exam": { "type": "string" },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "saves": { "type": "array", "items": { "type": "string" } },
+        "commentCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorUid", "imageUrl", "solution", "subject", "exam", "createdAt"]
+    },
+    "DoubtComment": {
+      "title": "Doubt Comment",
+      "description": "A comment on a doubt post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "authorUid", "text", "createdAt"]
+    },
+    "PendingPayment": {
+      "title": "Pending Payment",
+      "description": "A manual payment request with a UTR number.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "utr": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "utr", "status", "createdAt"]
+    },
+    "Complaint": {
+      "title": "User Complaint",
+      "description": "A complaint or update request from a student.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "message", "status", "createdAt"]
+    },
+    "AppConfig": {
+      "title": "App Configuration",
+      "description": "Global settings for the application.",
+      "type": "object",
+      "properties": {
+        "globalNotification": { "type": "string" },
+        "maintenanceMode": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Snap": {
+      "title": "Image Snap",
+      "description": "A log of an image analysis performed by a user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "mode": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "result": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "mode", "imageUrl", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents."
+    },
+    "/whiz_quizzes/{quizId}": {
+      "schema": "WhizQuiz",
+      "description": "AI-generated quizzes for sharing."
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Referral tracking."
+    },
+    "/doubt_posts/{postId}": {
+      "schema": "DoubtPost",
+      "description": "Community doubt posts."
+    },
+    "/doubt_posts/{postId}/comments/{commentId}": {
+      "schema": "DoubtComment",
+      "description": "Comments on doubt posts."
+    },
+    "/semesters/{semesterId}": {
+      "schema": "Semester",
+      "description": "Academic semesters."
+    },
+    "/books/{bookId}": {
+      "schema": "Book",
+      "description": "Textbooks and resources."
+    },
+    "/media/{mediaId}": {
+      "schema": "Media",
+      "description": "Uploaded media files."
+    },
+    "/activities/{activityId}": {
+      "schema": "Activity",
+      "description": "User activity logs."
+    },
+    "/battles/{battleId}": {
+      "schema": "Battle",
+      "description": "Multiplayer battle sessions."
+    },
+    "/weekly_exams/{examId}": {
+      "schema": "WeeklyExam",
+      "description": "Weekly AI exams."
+    },
+    "/exam_submissions/{submissionId}": {
+      "schema": "ExamSubmission",
+      "description": "User exam submissions."
+    },
+    "/pending_payments/{paymentId}": {
+      "schema": "PendingPayment",
+      "description": "Manual payment requests."
+    },
+    "/complaints/{complaintId}": {
+      "schema": "Complaint",
+      "description": "User complaints and feedback."
+    },
+    "/app_config/{configId}": {
+      "schema": "AppConfig",
+      "description": "Global app configuration."
+    },
+    "/snaps/{snapId}": {
+      "schema": "Snap",
+      "description": "Logs of image snaps."
+    }
+  }
+}
